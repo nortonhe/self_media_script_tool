@@ -42,6 +42,7 @@ type LogConfig struct {
 	MaxBackups int    `mapstructure:"maxBackups"`   //保留旧文件数量
 	MaxAge     int    `mapstructure:"maxAge"`       //保留天数
 	Compress   bool   `mapstructure:"compress"`     //是否gzip压缩旧日志
+	Console    bool   `mapstructure:"console"` // 新增：是否输出控制台
 }
 
 

@@ -22,6 +22,9 @@ func main() {
 	// 启动服务（gin）
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
+
+	// 顺序：trace中间件最先注册
+	r.Use(logger.TraceMiddleware())
 	r.Use(logger.GinZap())
 	r.Use(logger.RecoveryWithZap()) // 替换原生gin.Recovery()
 

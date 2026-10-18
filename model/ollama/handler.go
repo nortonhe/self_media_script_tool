@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 // Handler 处理前端请求，流式返回 Ollama 中千问模型的响应
@@ -21,13 +22,7 @@ func Handler(c *gin.Context) {
 		return
 	}
 
-	c.Header("Content-Type", "text/event-stream")
-	c.Header("Cache-Control", "no-cache")
-	c.Header("Connection", "keep-alive")
-	c.Header("Access-Control-Allow-Origin", "*")
-	c.Status(http.StatusOK)
-
-	logger.Sugar.Debugf("收到查询请求: %s", query)
+	logger.CtxDebug(c.Request.Context(), "收到查询请求", zap.String("query", query))
 
 	if err := callModel(query, c); err != nil {
 		c.Writer.WriteString("data: {\"error\":\"" + err.Error() + "\"}\n\n")
@@ -84,7 +79,7 @@ func callModel(query string, c *gin.Context) error {
 			return fmt.Errorf("decode ollama stream chunk failed: %w", err)
 		}
 		// 打印日志方便观察
-		logger.Sugar.Debugf("推送结果: %+v", result)
+		logger.CtxDebug(c.Request.Context(), "推送结果", zap.Any("result", result))
 		if result.Error != "" {
 			return fmt.Errorf("ollama error: %s", result.Error)
 		}
@@ -110,7 +105,7 @@ func callModel(query string, c *gin.Context) error {
 		return fmt.Errorf("write end signal failed: %w", err)
 	}
 	c.Writer.Flush()
-	logger.Sugar.Debugf("最终结果: %s", finalRes)
-	c.Set("final_response", finalRes)
+	logger.CtxDebug(c.Request.Context(), "最终结果", zap.String("result", finalRes))
+	c.Set(logger.ParamFinalResponse, finalRes)
 	return nil
 }

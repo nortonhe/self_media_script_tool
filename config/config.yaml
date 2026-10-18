@@ -12,3 +12,4 @@ log:
   maxBackups: 10 # 日志文件最大备份数量
   maxAge: 7 # 日志文件最大保存天数
   compress: true # 是否压缩日志文件
+  console: false # false=关闭控制台输出

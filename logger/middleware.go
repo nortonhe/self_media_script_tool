@@ -8,6 +8,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const ParamFinalResponse = "final_response"
+
 // GinZap 自定义请求日志中间件，使用项目zap日志
 func GinZap() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -16,14 +18,14 @@ func GinZap() gin.HandlerFunc {
 		c.Next()
 		// 处理完请求后记录日志
 		latency := time.Since(start)
-		ZapLogger.Info("http request",
+		CtxInfo(c.Request.Context(), "http request",
 			zap.String("method", c.Request.Method),
 			zap.String("path", c.Request.URL.Path),
 			zap.String("query", strings.TrimSpace(c.PostForm("query"))),
 			zap.String("clientIP", c.ClientIP()),
 			zap.Int("status", c.Writer.Status()),
 			zap.Duration("latency", latency),
-			zap.String("final_response", c.GetString("final_response")),
+			zap.String("final_response", c.GetString(ParamFinalResponse)),
 		)
 	}
 }
@@ -33,7 +35,7 @@ func RecoveryWithZap() gin.HandlerFunc {
 		defer func() {
 			if err := recover(); err != nil {
 				// 记录panic到zap日志
-				ZapLogger.Error("http panic recovered",
+				CtxError(c.Request.Context(), "http panic recovered",
 					zap.Any("error", err),
 					zap.String("method", c.Request.Method),
 					zap.String("path", c.Request.URL.Path),
@@ -45,3 +47,25 @@ func RecoveryWithZap() gin.HandlerFunc {
 	}
 }
 
+const HeaderTraceId = "X-Trace-Id"
+
+// TraceMiddleware 链路追踪中间件
+func TraceMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 优先从header获取上游传递的traceId，没有则新建
+		traceId := c.GetHeader(HeaderTraceId)
+		if traceId == "" {
+			traceId = NewTraceId()
+		}
+
+		// 把traceId存入gin的context（gin.Context内嵌context.Context）
+		newCtx := SetTraceId(c.Request.Context(), traceId)
+		// 替换请求底层的context
+		c.Request = c.Request.WithContext(newCtx)
+
+		// 可选：把traceId回写到响应header，方便前端排查
+		c.Header(HeaderTraceId, traceId)
+
+		c.Next()
+	}
+}
