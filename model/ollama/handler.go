@@ -7,13 +7,11 @@ import (
 	"fmt"
 	"net/http"
 	"self_medie_script_tool/config"
+	"self_medie_script_tool/logger"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
-
-var model = "qwen2.5:7b"
-var url = "http://127.0.0.1:11434/api/generate"
 
 // Handler 处理前端请求，流式返回 Ollama 中千问模型的响应
 func Handler(c *gin.Context) {
@@ -29,7 +27,7 @@ func Handler(c *gin.Context) {
 	c.Header("Access-Control-Allow-Origin", "*")
 	c.Status(http.StatusOK)
 
-	fmt.Printf("收到查询请求: %s\n", query)
+	logger.Sugar.Debugf("收到查询请求: %s", query)
 
 	if err := callModel(query, c); err != nil {
 		c.Writer.WriteString("data: {\"error\":\"" + err.Error() + "\"}\n\n")
@@ -69,6 +67,7 @@ func callModel(query string, c *gin.Context) error {
 		return fmt.Errorf("ollama returned status code %d", resp.StatusCode)
 	}
 
+	var finalRes string
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
@@ -84,13 +83,14 @@ func callModel(query string, c *gin.Context) error {
 		if err := json.Unmarshal([]byte(line), &result); err != nil {
 			return fmt.Errorf("decode ollama stream chunk failed: %w", err)
 		}
+		// 打印日志方便观察
+		logger.Sugar.Debugf("推送结果: %+v", result)
 		if result.Error != "" {
 			return fmt.Errorf("ollama error: %s", result.Error)
 		}
 
-		// 打印日志方便观察
-		fmt.Printf("推送结果: %s\n", result.Response)
 		if result.Response != "" {
+			finalRes += result.Response
 			_, err = fmt.Fprintf(c.Writer, "data: %s\n\n", result.Response)
 			if err != nil {
 				return fmt.Errorf("write stream data failed: %w", err)
@@ -110,5 +110,7 @@ func callModel(query string, c *gin.Context) error {
 		return fmt.Errorf("write end signal failed: %w", err)
 	}
 	c.Writer.Flush()
+	logger.Sugar.Debugf("最终结果: %s", finalRes)
+	c.Set("final_response", finalRes)
 	return nil
 }

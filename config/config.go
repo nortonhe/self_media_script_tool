@@ -36,9 +36,14 @@ type OllamaConfig struct {
 }
 
 type LogConfig struct {
-	Level string `mapstructure:"level" validate:"oneof=debug info warn error"`
-	File  string `mapstructure:"file"`
+	Level      string `mapstructure:"level" validate:"oneof=debug info warn error"` //日志级别
+	File       string `mapstructure:"file"`          //日志文件路径，空则只输出stdout
+	MaxSize    int    `mapstructure:"maxSize"`      //MB，单个文件最大大小
+	MaxBackups int    `mapstructure:"maxBackups"`   //保留旧文件数量
+	MaxAge     int    `mapstructure:"maxAge"`       //保留天数
+	Compress   bool   `mapstructure:"compress"`     //是否gzip压缩旧日志
 }
+
 
 // Init 初始化配置，入参：配置文件路径；enableWatch 是否开启热加载
 func Init(configFile string, enableWatch bool) error {
