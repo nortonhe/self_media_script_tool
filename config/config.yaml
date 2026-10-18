@@ -1,0 +1,10 @@
+server:
+  path: "/test"
+  port: 9090
+ollama:
+  url: "http://127.0.0.1:11434/api/generate"
+  model: "qwen2.5:7b"
+  stream: true
+log:
+  level: info
+  file: "./log/app.log"

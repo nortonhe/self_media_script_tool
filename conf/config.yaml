@@ -1,6 +1,0 @@
-server:
-  path: "/test"
-  port: "9090"
-log:
-  level: info
-  file: "./log/app.log"

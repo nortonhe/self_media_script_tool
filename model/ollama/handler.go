@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"self_medie_script_tool/config"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -14,8 +15,8 @@ import (
 var model = "qwen2.5:7b"
 var url = "http://127.0.0.1:11434/api/generate"
 
-// QianWenHandler 处理前端请求，流式返回 Ollama 中千问模型的响应
-func QianWenHandler(c *gin.Context) {
+// Handler 处理前端请求，流式返回 Ollama 中千问模型的响应
+func Handler(c *gin.Context) {
 	query := strings.TrimSpace(c.PostForm("query"))
 	if query == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "query 参数不能为空"})
@@ -30,7 +31,7 @@ func QianWenHandler(c *gin.Context) {
 
 	fmt.Printf("收到查询请求: %s\n", query)
 
-	if err := callQianWenModel(query, c); err != nil {
+	if err := callModel(query, c); err != nil {
 		c.Writer.WriteString("data: {\"error\":\"" + err.Error() + "\"}\n\n")
 		c.Writer.WriteString("data: [DONE]\n\n")
 		c.Writer.Flush()
@@ -38,12 +39,13 @@ func QianWenHandler(c *gin.Context) {
 	}
 }
 
-// callQianWenModel 调用本地 Ollama 的 qwen 模型进行流式处理
-func callQianWenModel(query string, c *gin.Context) error {
+// callModel 调用本地 Ollama 的模型进行流式处理
+func callModel(query string, c *gin.Context) error {
+	conf := config.Get()
 	payload := map[string]any{
-		"model":  model,
+		"model":  conf.Ollama.Model,
 		"prompt": query,
-		"stream": true,
+		"stream": conf.Ollama.Stream,
 	}
 
 	body, err := json.Marshal(payload)
@@ -51,7 +53,7 @@ func callQianWenModel(query string, c *gin.Context) error {
 		return fmt.Errorf("marshal request body failed: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, conf.Ollama.URL, bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("create request failed: %w", err)
 	}

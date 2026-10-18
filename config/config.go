@@ -1,4 +1,4 @@
-package conf
+package config
 
 import (
 	"errors"
@@ -20,12 +20,19 @@ var mu sync.RWMutex // 热更新读写锁
 // Config 总配置结构体，mapstructure标签是viper反序列化必须的
 type Config struct {
 	Server ServerConfig `mapstructure:"server" validate:"required"`
+	Ollama OllamaConfig `mapstructure:"ollama" validate:"required"`
 	Log    LogConfig    `mapstructure:"log" validate:"required"`
 }
 
 type ServerConfig struct {
 	Path        string `mapstructure:"path" validate:"required"`
 	Port        int    `mapstructure:"port" validate:"required,min=1,max=65535"`
+}
+
+type OllamaConfig struct {
+	URL   string `mapstructure:"url" validate:"required,url"`
+	Model string `mapstructure:"model" validate:"required"`
+	Stream bool   `mapstructure:"stream"`
 }
 
 type LogConfig struct {
@@ -103,7 +110,7 @@ func Init(configFile string, enableWatch bool) error {
 
 // Get 获取配置副本（可选，防止外部直接修改GlobalConf）
 func Get() Config {
-	mu.RLock()
-	defer mu.RUnlock()
+	// mu.RLock()
+	// defer mu.RUnlock()
 	return *GlobalConf
 }

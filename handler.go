@@ -13,6 +13,6 @@ func handler(c *gin.Context) {
 	c.Writer.Header().Set("Connection", "keep-alive")
 	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 
-	// 2. 调用 Ollama 的千问模型处理请求
-	ollama.QianWenHandler(c)
+	// 2. 调用 Ollama 模型处理请求
+	ollama.Handler(c)
 }
