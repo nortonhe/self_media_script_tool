@@ -12,7 +12,7 @@ import (
 )
 
 var model = "qwen2.5:7b"
-var url = "http://localhost:11434/api/generate"
+var url = "http://127.0.0.1:11434/api/generate"
 
 // QianWenHandler 处理前端请求，流式返回 Ollama 中千问模型的响应
 func QianWenHandler(c *gin.Context) {

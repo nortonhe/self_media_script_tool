@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUTPUT_DIR="${ROOT_DIR}/bin"
-BINARY_NAME="self_medie_script_tool"
+BINARY_NAME="self_media_script_tool"
 OUTPUT_PATH="${OUTPUT_DIR}/${BINARY_NAME}"
 
 mkdir -p "${OUTPUT_DIR}"
