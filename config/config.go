@@ -116,7 +116,7 @@ func Init(configFile string, enableWatch bool) error {
 
 // Get 获取配置副本（可选，防止外部直接修改GlobalConf）
 func Get() Config {
-	// mu.RLock()
-	// defer mu.RUnlock()
+	mu.RLock()
+	defer mu.RUnlock()
 	return *GlobalConf
 }

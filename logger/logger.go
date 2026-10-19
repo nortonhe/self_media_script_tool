@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -78,37 +77,4 @@ func Init(logCfg config.LogConfig) {
 // Sync 刷写缓冲区，程序退出时defer调用
 func Sync() {
 	_ = ZapLogger.Sync()
-}
-
-// ===== 新增：从ctx读取traceId打印日志 =====
-func CtxInfo(ctx context.Context, msg string, fields ...zap.Field) {
-	traceId := GetTraceId(ctx)
-	if traceId != "" {
-		fields = append(fields, zap.String("trace_id", traceId))
-	}
-	ZapLogger.Info(msg, fields...)
-}
-
-func CtxError(ctx context.Context, msg string, fields ...zap.Field) {
-	traceId := GetTraceId(ctx)
-	if traceId != "" {
-		fields = append(fields, zap.String("trace_id", traceId))
-	}
-	ZapLogger.Error(msg, fields...)
-}
-
-func CtxWarn(ctx context.Context, msg string, fields ...zap.Field) {
-	traceId := GetTraceId(ctx)
-	if traceId != "" {
-		fields = append(fields, zap.String("trace_id", traceId))
-	}
-	ZapLogger.Warn(msg, fields...)
-}
-
-func CtxDebug(ctx context.Context, msg string, fields ...zap.Field) {
-	traceId := GetTraceId(ctx)
-	if traceId != "" {
-		fields = append(fields, zap.String("trace_id", traceId))
-	}
-	ZapLogger.Debug(msg, fields...)
 }
