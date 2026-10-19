@@ -2,8 +2,8 @@ package main
 
 import (
 	"net/http"
-	"self_medie_script_tool/context"
-	"self_medie_script_tool/model/ollama"
+	"self_medie_script_tool/logic"
+	"self_medie_script_tool/svrcontext"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,12 +17,12 @@ func handler(c *gin.Context) {
 	c.Status(http.StatusOK)
 
 	// 2. 构建服务上下文，提取请求参数和traceID
-	svrCtx, err := context.BuildServerContext(c)
+	svrCtx, err := svrcontext.BuildServerContext(c)
 	if err != nil {
 		// 错误已经在BuildServerContext里处理过响应了，这里直接返回
 		return
 	}
 
 	// 3. 调用 Ollama 模型处理请求
-	ollama.Handler(svrCtx)
+	logic.Handler(svrCtx)
 }

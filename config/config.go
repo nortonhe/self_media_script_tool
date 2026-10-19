@@ -20,7 +20,7 @@ var mu sync.RWMutex // 热更新读写锁
 // Config 总配置结构体，mapstructure标签是viper反序列化必须的
 type Config struct {
 	Server ServerConfig `mapstructure:"server" validate:"required"`
-	Ollama OllamaConfig `mapstructure:"ollama" validate:"required"`
+	LLM    LLMConfig    `mapstructure:"llm" validate:"required"`
 	Log    LogConfig    `mapstructure:"log" validate:"required"`
 }
 
@@ -29,10 +29,14 @@ type ServerConfig struct {
 	Port        int    `mapstructure:"port" validate:"required,min=1,max=65535"`
 }
 
-type OllamaConfig struct {
-	URL   string `mapstructure:"url" validate:"required,url"`
+type LLMConfig struct {
+	APIKey string `mapstructure:"apikey" validate:"required"`
+	BaseURL   string `mapstructure:"baseURL" validate:"required,url"`
 	Model string `mapstructure:"model" validate:"required"`
+	Temperature float32 `mapstructure:"temperature" validate:"required,gte=0,lte=1"` // 温度参数，控制生成文本的随机性，范围为 0.0 到 1.0
+	MaxTokens   int     `mapstructure:"maxTokens" validate:"required,min=1"` // 最大生成 token 数量
 	Stream bool   `mapstructure:"stream"`
+	Timeout int    `mapstructure:"timeout" validate:"required,min=1"` // 请求超时时间，单位为秒
 }
 
 type LogConfig struct {

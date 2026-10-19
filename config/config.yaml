@@ -1,10 +1,14 @@
 server:
   path: "/test"
   port: 9090
-ollama:
-  url: "http://127.0.0.1:11434/api/generate"
+llm:
+  apikey: "ollama" # 如果需要 API Key，请在此处填写
+  baseURL: "http://127.0.0.1:11434/v1"
   model: "qwen2.5:7b"
+  temperature: 0.7 # 温度参数，控制生成文本的随机性，范围为 0.0 到 1.0
+  maxTokens: 2048 # 最大生成 token 数量
   stream: true
+  timeout: 60 # 请求超时时间，单位为秒
 log:
   level: debug # 日志级别，可选值为 debug、info、warn、error
   file: "./logs/app.log"  # 日志文件路径

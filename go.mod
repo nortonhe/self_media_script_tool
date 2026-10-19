@@ -8,6 +8,7 @@ require (
 	github.com/go-playground/validator/v10 v10.30.5
 	github.com/google/uuid v1.6.0
 	github.com/natefinch/lumberjack v2.0.0+incompatible
+	github.com/sashabaranov/go-openai v1.43.0
 	github.com/spf13/viper v1.21.0
 	go.uber.org/zap v1.28.0
 )

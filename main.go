@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"self_medie_script_tool/config"
 	"self_medie_script_tool/logger"
+	"self_medie_script_tool/logic"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,6 +19,9 @@ func main() {
 	// 2. 初始化日志组件，传入配置里的log段（zap）
 	logger.Init(conf.Log)
 	defer logger.Sync() // 关键！退出刷日志
+
+	// 初始化OpenAI客户端
+	logic.Init(conf)
 
 	// 启动服务（gin）
 	gin.SetMode(gin.ReleaseMode)

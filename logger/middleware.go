@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// ParamFinalResponse 定义在gin.Context里存储最终响应结果的key
 const ParamFinalResponse = "final_response"
 
 // GinZap 自定义请求日志中间件，使用项目zap日志
@@ -30,6 +31,7 @@ func GinZap() gin.HandlerFunc {
 	}
 }
 
+// RecoveryWithZap 自定义panic恢复中间件，使用项目zap日志
 func RecoveryWithZap() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
@@ -47,6 +49,7 @@ func RecoveryWithZap() gin.HandlerFunc {
 	}
 }
 
+// HeaderTraceId 定义traceId在http header中的key
 const HeaderTraceId = "X-Trace-Id"
 
 // TraceMiddleware 链路追踪中间件
