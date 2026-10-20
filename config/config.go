@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"self_medie_script_tool/config/prompt"
 	"strings"
 	"sync"
 
@@ -20,7 +21,8 @@ var mu sync.RWMutex // 热更新读写锁
 // Config 总配置结构体，mapstructure标签是viper反序列化必须的
 type Config struct {
 	Server ServerConfig `mapstructure:"server" validate:"required"`
-	Ollama OllamaConfig `mapstructure:"ollama" validate:"required"`
+	LLM    LLMConfig    `mapstructure:"llm" validate:"required"`
+	Prompt PromptConfig `mapstructure:"prompt"`
 	Log    LogConfig    `mapstructure:"log" validate:"required"`
 }
 
@@ -29,10 +31,15 @@ type ServerConfig struct {
 	Port        int    `mapstructure:"port" validate:"required,min=1,max=65535"`
 }
 
-type OllamaConfig struct {
-	URL   string `mapstructure:"url" validate:"required,url"`
-	Model string `mapstructure:"model" validate:"required"`
-	Stream bool   `mapstructure:"stream"`
+type LLMConfig struct {
+	APIKey string `mapstructure:"apikey" validate:"required"`
+	BaseURL   string `mapstructure:"baseURL" validate:"required,url"`
+}
+
+type PromptConfig struct {
+	BaseDir   string          `mapstructure:"baseDir"`
+	HotReload bool            `mapstructure:"hot_reload"`
+	Uses      []prompt.PromptInfo `mapstructure:"uses"`
 }
 
 type LogConfig struct {
@@ -42,6 +49,7 @@ type LogConfig struct {
 	MaxBackups int    `mapstructure:"maxBackups"`   //保留旧文件数量
 	MaxAge     int    `mapstructure:"maxAge"`       //保留天数
 	Compress   bool   `mapstructure:"compress"`     //是否gzip压缩旧日志
+	Console    bool   `mapstructure:"console"` // 新增：是否输出控制台
 }
 
 
@@ -115,7 +123,7 @@ func Init(configFile string, enableWatch bool) error {
 
 // Get 获取配置副本（可选，防止外部直接修改GlobalConf）
 func Get() Config {
-	// mu.RLock()
-	// defer mu.RUnlock()
+	mu.RLock()
+	defer mu.RUnlock()
 	return *GlobalConf
 }

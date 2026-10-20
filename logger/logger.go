@@ -35,9 +35,16 @@ func Init(logCfg config.LogConfig) {
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+	consoleEncoder := zapcore.NewConsoleEncoder(encoderConfig)
 	jsonEncoder := zapcore.NewJSONEncoder(encoderConfig)
 
 	var cores []zapcore.Core
+
+	// 根据配置决定是否开启控制台输出
+	if logCfg.Console {
+		consoleCore := zapcore.NewCore(consoleEncoder, zapcore.Lock(os.Stdout), lvl)
+		cores = append(cores, consoleCore)
+	}
 
 	// 如果配置了日志文件，增加文件输出core，带lumberjack滚动
 	if logCfg.File != "" {

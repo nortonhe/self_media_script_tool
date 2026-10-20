@@ -1,10 +1,15 @@
 server:
   path: "/test"
   port: 9090
-ollama:
-  url: "http://127.0.0.1:11434/api/generate"
-  model: "qwen2.5:7b"
-  stream: true
+llm:
+  apikey: "ollama" # 如果需要 API Key，请在此处填写
+  baseURL: "http://127.0.0.1:11434/v1"
+prompt:
+  baseDir: "./config/prompt" # prompt 模板文件存放目录
+  hot_reload: true # 热加载总开关，true开启，false关闭
+  uses:
+    - template_id: "short_video_sales"
+      version: "v1"
 log:
   level: debug # 日志级别，可选值为 debug、info、warn、error
   file: "./logs/app.log"  # 日志文件路径
@@ -12,3 +17,4 @@ log:
   maxBackups: 10 # 日志文件最大备份数量
   maxAge: 7 # 日志文件最大保存天数
   compress: true # 是否压缩日志文件
+  console: false # false=关闭控制台输出
