@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"self_medie_script_tool/config/prompt"
 	"strings"
 	"sync"
 
@@ -21,6 +22,7 @@ var mu sync.RWMutex // 热更新读写锁
 type Config struct {
 	Server ServerConfig `mapstructure:"server" validate:"required"`
 	LLM    LLMConfig    `mapstructure:"llm" validate:"required"`
+	Prompt PromptConfig `mapstructure:"prompt"`
 	Log    LogConfig    `mapstructure:"log" validate:"required"`
 }
 
@@ -32,11 +34,12 @@ type ServerConfig struct {
 type LLMConfig struct {
 	APIKey string `mapstructure:"apikey" validate:"required"`
 	BaseURL   string `mapstructure:"baseURL" validate:"required,url"`
-	Model string `mapstructure:"model" validate:"required"`
-	Temperature float32 `mapstructure:"temperature" validate:"required,gte=0,lte=1"` // 温度参数，控制生成文本的随机性，范围为 0.0 到 1.0
-	MaxTokens   int     `mapstructure:"maxTokens" validate:"required,min=1"` // 最大生成 token 数量
-	Stream bool   `mapstructure:"stream"`
-	Timeout int    `mapstructure:"timeout" validate:"required,min=1"` // 请求超时时间，单位为秒
+}
+
+type PromptConfig struct {
+	BaseDir   string          `mapstructure:"baseDir"`
+	HotReload bool            `mapstructure:"hot_reload"`
+	Uses      []prompt.PromptInfo `mapstructure:"uses"`
 }
 
 type LogConfig struct {

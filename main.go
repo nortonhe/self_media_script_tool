@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"self_medie_script_tool/config"
+	"self_medie_script_tool/config/prompt"
 	"self_medie_script_tool/logger"
 	"self_medie_script_tool/logic"
+	"self_medie_script_tool/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,6 +22,15 @@ func main() {
 	logger.Init(conf.Log)
 	defer logger.Sync() // 关键！退出刷日志
 
+	// 初始化PromptManager
+	pm := prompt.NewPromptManager(conf.Prompt.BaseDir, logger.ZapLogger)
+	defer pm.Close() // 优雅关闭释放watcher
+
+	// 预加载所有uses模板，自动根据hot_reload开关启动监听
+	if err := pm.PreLoadFromConfig(conf.Prompt.Uses, conf.Prompt.HotReload); err != nil {
+		panic(fmt.Sprintf("prompt preload failed: %v", err))
+	}
+
 	// 初始化OpenAI客户端
 	logic.Init(conf)
 
@@ -28,14 +39,12 @@ func main() {
 	r := gin.New()
 
 	// 顺序：trace中间件最先注册
-	r.Use(logger.TraceMiddleware())
-	r.Use(logger.GinZap())
-	r.Use(logger.RecoveryWithZap()) // 替换原生gin.Recovery()
+	r.Use(middleware.TraceMiddleware())
+	r.Use(middleware.GinZap())
+	r.Use(middleware.RecoveryWithZap()) // 替换原生gin.Recovery()
 
-	r.POST(conf.Server.Path, handler)
+	r.POST(conf.Server.Path, handler(pm))
 	if err := r.Run(fmt.Sprintf(":%d", conf.Server.Port)); err != nil {
 		panic("sse服务启动失败:" + err.Error())
-	} else {
-		logger.Sugar.Infof("sse服务启动成功，监听端口: %d", conf.Server.Port)
 	}
 }

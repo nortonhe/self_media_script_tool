@@ -41,9 +41,12 @@ func Handler(c *svrcontext.ServerContext) {
 }
 
 func chat(c *svrcontext.ServerContext) error {
-	request := buildRequest(c)
-	// 继承gin请求ctx，再增加30s硬超时
-	ctx, cancel := context.WithTimeout(c.GetGinContext().Request.Context(), 30*time.Second)
+	request, timeout, err := buildRequest(c)
+	if err != nil {
+		return fmt.Errorf("build chat request failed: %w", err)
+	}
+	logger.TraceDebug(c.GetTraceID(), "构建请求参数", zap.Any("request", request), zap.Int("timeout", timeout))
+	ctx, cancel := context.WithTimeout(c.GetGinContext().Request.Context(), time.Duration(timeout)*time.Second)
 	defer cancel()
 
 	if !request.Stream {
@@ -86,19 +89,38 @@ func chat(c *svrcontext.ServerContext) error {
 	return finishResponse(c)
 }
 
-func buildRequest(c *svrcontext.ServerContext) openai.ChatCompletionRequest {
+func buildRequest(c *svrcontext.ServerContext) (openai.ChatCompletionRequest, int, error) {
+	// 获取模板
+	tpl, err := c.GetPromptManager().Get("short_video_sales", "v1")
+	if err != nil {
+		return openai.ChatCompletionRequest{}, 0, err
+	}
+
+	systemPrompt, err := tpl.RenderSystem(c.GetRequest())
+	if err != nil {
+		return openai.ChatCompletionRequest{}, 0, fmt.Errorf("render system prompt failed: %w", err)
+	}
+	userPrompt, err := tpl.RenderUser(c.GetRequest())
+	if err != nil {
+		return openai.ChatCompletionRequest{}, 0, fmt.Errorf("render user prompt failed: %w", err)
+	}
+
 	return openai.ChatCompletionRequest{
-		Model: c.GetConfig().LLM.Model,
-		Temperature: c.GetConfig().LLM.Temperature,
-		MaxTokens: c.GetConfig().LLM.MaxTokens,
+		Model:       tpl.Model,
+		Temperature: tpl.Temperature,
+		MaxTokens:   tpl.MaxTokens,
 		Messages: []openai.ChatCompletionMessage{
 			{
+				Role:    openai.ChatMessageRoleSystem,
+				Content: systemPrompt,
+			},
+			{
 				Role:    openai.ChatMessageRoleUser,
-				Content: c.GetQuery(),
+				Content: userPrompt,
 			},
 		},
-		Stream: c.GetConfig().LLM.Stream,
-	}
+		Stream: tpl.Stream,
+	}, tpl.Timeout, nil
 }
 
 func writeContent(c *svrcontext.ServerContext, content string) error {
@@ -119,7 +141,6 @@ func finishResponse(c *svrcontext.ServerContext) error {
 		return fmt.Errorf("write end signal failed: %w", err)
 	}
 	c.GetGinContext().Writer.Flush()
-	c.SetResult()
 	logger.TraceDebug(c.GetTraceID(), "最终结果", zap.String("result", c.GetResult()))
 	return nil
 }

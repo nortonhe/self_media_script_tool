@@ -11,6 +11,7 @@ require (
 	github.com/sashabaranov/go-openai v1.43.0
 	github.com/spf13/viper v1.21.0
 	go.uber.org/zap v1.28.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
