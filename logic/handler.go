@@ -8,6 +8,7 @@ import (
 	"io"
 	"self_medie_script_tool/config"
 	"self_medie_script_tool/logger"
+	"self_medie_script_tool/observability"
 	"self_medie_script_tool/svrcontext"
 	"time"
 
@@ -28,10 +29,10 @@ func Init(conf config.Config) {
 // Handler handles requests and streams chat responses to the client.
 func Handler(c *svrcontext.ServerContext) {
 	if err := chat(c); err != nil {
-		logger.TraceError(c.GetTraceID(), "处理请求失败", zap.Error(err))
+		logger.TraceError(c.GetTraceID(), "处理请求失败", observability.TraceField(c.GetGinContext().Request.Context()), zap.Error(err))
 		errorMessage, marshalErr := json.Marshal(map[string]string{"error": err.Error()})
 		if marshalErr != nil {
-			logger.TraceError(c.GetTraceID(), "编码错误响应失败", zap.Error(marshalErr))
+			logger.TraceError(c.GetTraceID(), "编码错误响应失败", observability.TraceField(c.GetGinContext().Request.Context()), zap.Error(marshalErr))
 			errorMessage = []byte(`{"error":"request failed"}`)
 		}
 		_, _ = fmt.Fprintf(c.GetGinContext().Writer, "data: %s\n\n", errorMessage)
@@ -40,14 +41,30 @@ func Handler(c *svrcontext.ServerContext) {
 	}
 }
 
-func chat(c *svrcontext.ServerContext) error {
+func chat(c *svrcontext.ServerContext) (retErr error) {
 	request, timeout, err := buildRequest(c)
 	if err != nil {
 		return fmt.Errorf("build chat request failed: %w", err)
 	}
-	logger.TraceDebug(c.GetTraceID(), "构建请求参数", zap.Any("request", request), zap.Int("timeout", timeout))
+
 	ctx, cancel := context.WithTimeout(c.GetGinContext().Request.Context(), time.Duration(timeout)*time.Second)
 	defer cancel()
+	
+	logger.TraceDebug(c.GetTraceID(), "构建模型请求",
+		zap.String("model", request.Model),
+		zap.Bool("stream", request.Stream),
+		zap.Int("timeout", timeout),
+		observability.TraceField(ctx),
+	)
+
+	start := time.Now()
+	ctx, span := observability.Tracer.Start(ctx, "llm.call")
+	reporter := newLLMCallReporter(ctx, span, c.GetMetrics(), request.Model, start)
+	defer func() {
+		reporter.Record(retErr)
+		span.End()
+	}()
+	
 
 	if !request.Stream {
 		response, err := openaiClient.CreateChatCompletion(ctx, request)
@@ -57,6 +74,7 @@ func chat(c *svrcontext.ServerContext) error {
 		if len(response.Choices) == 0 {
 			return errors.New("ollama chat returned no choices")
 		}
+		reporter.SetUsage(&response.Usage)
 		if err := writeContent(c, response.Choices[0].Message.Content); err != nil {
 			return err
 		}
@@ -78,7 +96,9 @@ func chat(c *svrcontext.ServerContext) error {
 			return fmt.Errorf("read ollama chat stream failed: %w", err)
 		}
 
-		logger.TraceDebug(c.GetTraceID(), "收到聊天流结果", zap.Any("result", response))
+		if response.Usage != nil {
+			reporter.SetUsage(response.Usage)
+		}
 		for _, choice := range response.Choices {
 			if err := writeContent(c, choice.Delta.Content); err != nil {
 				return err

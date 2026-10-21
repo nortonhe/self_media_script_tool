@@ -1,14 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"self_medie_script_tool/config"
 	"self_medie_script_tool/config/prompt"
 	"self_medie_script_tool/logger"
 	"self_medie_script_tool/logic"
 	"self_medie_script_tool/middleware"
+	"self_medie_script_tool/observability"
 
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
 func main() {
@@ -31,6 +34,22 @@ func main() {
 		panic(fmt.Sprintf("prompt preload failed: %v", err))
 	}
 
+	// 初始化OTEL
+	otelShutdown, err := observability.InitOTEL(context.Background(), observability.OTELConfig{
+		ServiceName:  "ai-prompt-service",
+		SamplingRate: 1.0, // 开发全采样，所有请求都输出trace
+	})
+	if err != nil {
+		panic("otel init failed: " + err.Error())
+	}
+	defer otelShutdown()
+
+	// 初始化LLM指标
+	llmMetrics, err := observability.NewLLMMetrics(observability.Meter)
+	if err != nil {
+		panic("llm metric init failed: " + err.Error())
+	}
+
 	// 初始化OpenAI客户端
 	logic.Init(conf)
 
@@ -38,12 +57,14 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	r := gin.New()
 
+	// OTEL Gin中间件：自动从http请求构建根span，注入trace到ctx
+	r.Use(otelgin.Middleware("ai-prompt-service"))
 	// 顺序：trace中间件最先注册
 	r.Use(middleware.TraceMiddleware())
 	r.Use(middleware.GinZap())
 	r.Use(middleware.RecoveryWithZap()) // 替换原生gin.Recovery()
 
-	r.POST(conf.Server.Path, handler(pm))
+	r.POST(conf.Server.Path, handler(pm, llmMetrics))
 	if err := r.Run(fmt.Sprintf(":%d", conf.Server.Port)); err != nil {
 		panic("sse服务启动失败:" + err.Error())
 	}
