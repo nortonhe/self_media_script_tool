@@ -6,6 +6,7 @@ import (
 	"self_medie_script_tool/config"
 	"self_medie_script_tool/config/prompt"
 	"self_medie_script_tool/logger"
+	"self_medie_script_tool/observability"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -16,6 +17,7 @@ type ServerContext struct {
 	ginCtx *gin.Context
 	conf   config.Config
 	pm     *prompt.PromptManager
+	metrics *observability.LLMMetrics
 
 	request Request
 	result  string
@@ -32,11 +34,12 @@ type Request struct {
 }
 
 // BuildServerContext 构建服务上下文，提取请求参数和traceID
-func BuildServerContext(ginCtx *gin.Context, pm *prompt.PromptManager) (*ServerContext, error) {
+func BuildServerContext(ginCtx *gin.Context, pm *prompt.PromptManager, metrics *observability.LLMMetrics) (*ServerContext, error) {
 	svrCtx := &ServerContext{
 		ginCtx:  ginCtx,
 		conf:    config.Get(),
 		pm:      pm,
+		metrics: metrics,
 		traceID: logger.GetTraceId(ginCtx.Request.Context()),
 	}
 
@@ -81,4 +84,8 @@ func (s *ServerContext) GetRequest() Request {
 // GetPromptManager 获取PromptManager实例
 func (s *ServerContext) GetPromptManager() *prompt.PromptManager {
 	return s.pm
+}
+
+func (s *ServerContext) GetMetrics() *observability.LLMMetrics {
+	return s.metrics
 }
