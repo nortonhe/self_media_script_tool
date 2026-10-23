@@ -24,6 +24,7 @@ type Config struct {
 	LLM    LLMConfig    `mapstructure:"llm" validate:"required"`
 	Prompt PromptConfig `mapstructure:"prompt"`
 	Log    LogConfig    `mapstructure:"log" validate:"required"`
+	OTel   OTelConfig   `mapstructure:"otel" validate:"required"`
 }
 
 type ServerConfig struct {
@@ -32,13 +33,13 @@ type ServerConfig struct {
 }
 
 type LLMConfig struct {
-	APIKey string `mapstructure:"apikey" validate:"required"`
+	APIKey string `mapstructure:"apiKey" validate:"required"`
 	BaseURL   string `mapstructure:"baseURL" validate:"required,url"`
 }
 
 type PromptConfig struct {
 	BaseDir   string          `mapstructure:"baseDir"`
-	HotReload bool            `mapstructure:"hot_reload"`
+	HotReload bool            `mapstructure:"hotReload"`
 	Uses      []prompt.PromptInfo `mapstructure:"uses"`
 }
 
@@ -52,6 +53,12 @@ type LogConfig struct {
 	Console    bool   `mapstructure:"console"` // 新增：是否输出控制台
 }
 
+type OTelConfig struct {
+	ServiceName string `mapstructure:"serviceName" validate:"required"`
+	Endpoint    string `mapstructure:"endpoint" validate:"required"`
+	SamplingRate float64 `mapstructure:"samplingRate" validate:"required,min=0.0,max=1.0"`
+	MetricsInterval int `mapstructure:"metricsInterval" validate:"required"`
+}
 
 // Init 初始化配置，入参：配置文件路径；enableWatch 是否开启热加载
 func Init(configFile string, enableWatch bool) error {

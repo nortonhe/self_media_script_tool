@@ -3,33 +3,27 @@ package observability
 import (
 	"context"
 	"fmt"
-	"self_medie_script_tool/logger"
+	"self_medie_script_tool/config"
 	"time"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	"go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/metric"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
-	"go.opentelemetry.io/otel/sdk/trace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
-var (
-	Tracer = otel.Tracer("ai-service")
-	Meter  = otel.Meter("ai-service")
-)
+var Tracer trace.Tracer
+var Meter metric.Meter
 
-type OTELConfig struct {
-	ServiceName  string
-	SamplingRate float64
-}
+func InitOTEL(ctx context.Context, cfg config.OTelConfig) (shutdown func(), err error) {
+	Tracer = otel.Tracer(cfg.ServiceName)
+	Meter  = otel.Meter(cfg.ServiceName)
 
-func InitOTEL(ctx context.Context, cfg OTELConfig) (shutdown func(), err error) {
-	// 在InitOTEL开头
-	otel.SetErrorHandler(otel.ErrorHandlerFunc(func(err error) {
-		logger.Sugar.Errorf("[OTEL METRIC ERROR] %v", err)
-	}))
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
 			semconv.ServiceNameKey.String(cfg.ServiceName),
@@ -41,31 +35,32 @@ func InitOTEL(ctx context.Context, cfg OTELConfig) (shutdown func(), err error) 
 
 	// Trace Exporter
 	traceExporter, err := otlptracehttp.New(ctx,
-		otlptracehttp.WithEndpoint("127.0.0.1:4318"),
+		otlptracehttp.WithEndpoint(cfg.Endpoint),
 		otlptracehttp.WithInsecure(), // 本地开发关闭TLS，生产环境删掉这个
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create trace exporter: %w", err)
 	}
 
-	tp := trace.NewTracerProvider(
-		trace.WithBatcher(traceExporter),
-		trace.WithResource(res),
-		trace.WithSampler(trace.TraceIDRatioBased(cfg.SamplingRate)),
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithBatcher(traceExporter),
+		sdktrace.WithResource(res),
+		sdktrace.WithSampler(sdktrace.TraceIDRatioBased(cfg.SamplingRate)),
 	)
 	otel.SetTracerProvider(tp)
 
 	// Metric Exporter
 	metricExporter, err := otlpmetrichttp.New(ctx,
-		otlpmetrichttp.WithEndpoint("127.0.0.1:4318"),
+		otlpmetrichttp.WithEndpoint(cfg.Endpoint),
 		otlpmetrichttp.WithInsecure(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create metric exporter: %w", err)
 	}
-	mp := metric.NewMeterProvider(
-		metric.WithReader(metric.NewPeriodicReader(metricExporter, metric.WithInterval(10*time.Second))),
-		metric.WithResource(res),
+	mp := sdkmetric.NewMeterProvider(
+		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(metricExporter, 
+			sdkmetric.WithInterval(time.Duration(cfg.MetricsInterval) * time.Second))),
+		sdkmetric.WithResource(res),
 	)
 	otel.SetMeterProvider(mp)
 

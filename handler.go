@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"self_medie_script_tool/logic"
 	"self_medie_script_tool/observability"
@@ -9,6 +10,8 @@ import (
 	"self_medie_script_tool/config/prompt"
 
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func handler(pm *prompt.PromptManager, metrics *observability.LLMMetrics) gin.HandlerFunc {
@@ -29,5 +32,13 @@ func handler(pm *prompt.PromptManager, metrics *observability.LLMMetrics) gin.Ha
 		// 3. 调用模型处理请求
 		c.Status(http.StatusOK)
 		logic.Handler(svrCtx)
+
+		// http trace
+		if httpSpan := trace.SpanFromContext(c.Request.Context()); httpSpan.IsRecording() {
+			if requestBody, err := json.Marshal(svrCtx.GetRequest()); err == nil {
+				httpSpan.SetAttributes(attribute.String("http.request.body", string(requestBody)))
+			}
+			httpSpan.SetAttributes(attribute.String("http.response.body", svrCtx.GetResult()))
+		}
 	}
 }

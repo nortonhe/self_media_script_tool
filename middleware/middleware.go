@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -22,7 +23,6 @@ func GinZap() gin.HandlerFunc {
 			zap.String("clientIP", c.ClientIP()),
 			zap.Int("status", c.Writer.Status()),
 			zap.Duration("latency", latency),
-			zap.String("traceID", logger.GetTraceId(c.Request.Context())),
 		)
 	}
 }
@@ -51,19 +51,31 @@ const HeaderTraceId = "X-Trace-Id"
 // TraceMiddleware 链路追踪中间件
 func TraceMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 优先从header获取上游传递的traceId，没有则新建
-		traceId := c.GetHeader(HeaderTraceId)
-		if traceId == "" {
-			traceId = logger.NewTraceId()
+		var traceID string
+		// 优先从span中获取，对齐trace链路
+		span := trace.SpanFromContext(c)
+		if span.IsRecording() {
+			sc := span.SpanContext()
+			traceID = sc.TraceID().String()
+		}
+	
+		// 从header获取上游传递的traceId，没有则新建
+		if traceID == "" {
+			traceID = c.GetHeader(HeaderTraceId)
+		}
+		
+		// 通过uuid自建
+		if traceID == "" {
+			traceID = logger.NewTraceId()
 		}
 
 		// 把traceId存入gin的context（gin.Context内嵌context.Context）
-		newCtx := logger.SetTraceId(c.Request.Context(), traceId)
+		newCtx := logger.SetTraceId(c.Request.Context(), traceID)
 		// 替换请求底层的context
 		c.Request = c.Request.WithContext(newCtx)
 
 		// 可选：把traceId回写到响应header，方便前端排查
-		c.Header(HeaderTraceId, traceId)
+		c.Header(HeaderTraceId, traceID)
 
 		c.Next()
 	}

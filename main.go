@@ -35,10 +35,7 @@ func main() {
 	}
 
 	// 初始化OTEL
-	otelShutdown, err := observability.InitOTEL(context.Background(), observability.OTELConfig{
-		ServiceName:  "ai-prompt-service",
-		SamplingRate: 1.0, // 开发全采样，所有请求都输出trace
-	})
+	otelShutdown, err := observability.InitOTEL(context.Background(), conf.OTel)
 	if err != nil {
 		panic("otel init failed: " + err.Error())
 	}

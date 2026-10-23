@@ -8,7 +8,7 @@ import (
 
 // PromptInfo 用于在主配置中引用具体的prompt模板
 type PromptInfo struct {
-	TemplateID string `mapstructure:"template_id"`
+	TemplateID string `mapstructure:"templateID"`
 	Version    string `mapstructure:"version"`
 }
 

@@ -29,10 +29,10 @@ func Init(conf config.Config) {
 // Handler handles requests and streams chat responses to the client.
 func Handler(c *svrcontext.ServerContext) {
 	if err := chat(c); err != nil {
-		logger.TraceError(c.GetTraceID(), "处理请求失败", observability.TraceField(c.GetGinContext().Request.Context()), zap.Error(err))
+		logger.TraceError(c.GetTraceID(), "处理请求失败", zap.Error(err))
 		errorMessage, marshalErr := json.Marshal(map[string]string{"error": err.Error()})
 		if marshalErr != nil {
-			logger.TraceError(c.GetTraceID(), "编码错误响应失败", observability.TraceField(c.GetGinContext().Request.Context()), zap.Error(marshalErr))
+			logger.TraceError(c.GetTraceID(), "编码错误响应失败", zap.Error(marshalErr))
 			errorMessage = []byte(`{"error":"request failed"}`)
 		}
 		_, _ = fmt.Fprintf(c.GetGinContext().Writer, "data: %s\n\n", errorMessage)
@@ -46,25 +46,23 @@ func chat(c *svrcontext.ServerContext) (retErr error) {
 	if err != nil {
 		return fmt.Errorf("build chat request failed: %w", err)
 	}
+	
 
 	ctx, cancel := context.WithTimeout(c.GetGinContext().Request.Context(), time.Duration(timeout)*time.Second)
 	defer cancel()
-	
+
 	logger.TraceDebug(c.GetTraceID(), "构建模型请求",
 		zap.String("model", request.Model),
 		zap.Bool("stream", request.Stream),
 		zap.Int("timeout", timeout),
-		observability.TraceField(ctx),
 	)
 
-	start := time.Now()
 	ctx, span := observability.Tracer.Start(ctx, "llm.call")
-	reporter := newLLMCallReporter(ctx, span, c.GetMetrics(), request.Model, start)
+	reporter := newLLMCallReporter(ctx, span, c.GetMetrics())
 	defer func() {
-		reporter.Record(retErr)
+		reporter.Record(retErr, request, c)
 		span.End()
 	}()
-	
 
 	if !request.Stream {
 		response, err := openaiClient.CreateChatCompletion(ctx, request)

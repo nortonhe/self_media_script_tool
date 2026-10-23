@@ -1,14 +1,14 @@
 server:
   path: "/test"
-  port: 9090
+  port: 9123
 llm:
-  apikey: "ollama" # 如果需要 API Key，请在此处填写
+  apiKey: "ollama" # 如果需要 API Key，请在此处填写
   baseURL: "http://127.0.0.1:11434/v1"
 prompt:
   baseDir: "./config/prompt" # prompt 模板文件存放目录
-  hot_reload: true # 热加载总开关，true开启，false关闭
+  hotReload: true # 热加载总开关，true开启，false关闭
   uses:
-    - template_id: "short_video_sales"
+    - templateID: "short_video_sales"
       version: "v1"
 log:
   level: debug # 日志级别，可选值为 debug、info、warn、error
@@ -18,3 +18,8 @@ log:
   maxAge: 7 # 日志文件最大保存天数
   compress: true # 是否压缩日志文件
   console: false # false=关闭控制台输出
+otel:
+  serviceName: "self_media_script_tool" # 服务名称
+  endpoint: "127.0.0.1:4318" # OTLP endpoint
+  samplingRate: 1.0 # 采样率，范围为 0.0 到 1.0
+  metricsInterval: 10 # 指标采集间隔，单位为秒

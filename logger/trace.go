@@ -36,7 +36,7 @@ func NewTraceId() string {
 func CtxInfo(ctx context.Context, msg string, fields ...zap.Field) {
 	traceId := GetTraceId(ctx)
 	if traceId != "" {
-		fields = append(fields, zap.String("trace_id", traceId))
+		fields = append(fields, zap.String("traceID", traceId))
 	}
 	ZapLogger.Info(msg, fields...)
 }
@@ -44,7 +44,7 @@ func CtxInfo(ctx context.Context, msg string, fields ...zap.Field) {
 func CtxError(ctx context.Context, msg string, fields ...zap.Field) {
 	traceId := GetTraceId(ctx)
 	if traceId != "" {
-		fields = append(fields, zap.String("trace_id", traceId))
+		fields = append(fields, zap.String("traceID", traceId))
 	}
 	ZapLogger.Error(msg, fields...)
 }
@@ -52,7 +52,7 @@ func CtxError(ctx context.Context, msg string, fields ...zap.Field) {
 func CtxWarn(ctx context.Context, msg string, fields ...zap.Field) {
 	traceId := GetTraceId(ctx)
 	if traceId != "" {
-		fields = append(fields, zap.String("trace_id", traceId))
+		fields = append(fields, zap.String("traceID", traceId))
 	}
 	ZapLogger.Warn(msg, fields...)
 }
@@ -60,7 +60,7 @@ func CtxWarn(ctx context.Context, msg string, fields ...zap.Field) {
 func CtxDebug(ctx context.Context, msg string, fields ...zap.Field) {
 	traceId := GetTraceId(ctx)
 	if traceId != "" {
-		fields = append(fields, zap.String("trace_id", traceId))
+		fields = append(fields, zap.String("traceID", traceId))
 	}
 	ZapLogger.Debug(msg, fields...)
 }
@@ -69,28 +69,28 @@ func CtxDebug(ctx context.Context, msg string, fields ...zap.Field) {
 // 为了避免每次都从context中取traceId，提供直接传traceId的日志函数，提高性能和简化代码
 func TraceInfo(traceId string, msg string, fields ...zap.Field) {
 	if traceId != "" {
-		fields = append(fields, zap.String("trace_id", traceId))
+		fields = append(fields, zap.String("traceID", traceId))
 	}
 	ZapLogger.Info(msg, fields...)
 }
 
 func TraceError(traceId string, msg string, fields ...zap.Field) {
 	if traceId != "" {
-		fields = append(fields, zap.String("trace_id", traceId))
+		fields = append(fields, zap.String("traceID", traceId))
 	}
 	ZapLogger.Error(msg, fields...)
 }
 
 func TraceWarn(traceId string, msg string, fields ...zap.Field) {
 	if traceId != "" {
-		fields = append(fields, zap.String("trace_id", traceId))
+		fields = append(fields, zap.String("traceID", traceId))
 	}
 	ZapLogger.Warn(msg, fields...)
 }
 
 func TraceDebug(traceId string, msg string, fields ...zap.Field) {
 	if traceId != "" {
-		fields = append(fields, zap.String("trace_id", traceId))
+		fields = append(fields, zap.String("traceID", traceId))
 	}
 	ZapLogger.Debug(msg, fields...)
 }
